@@ -47,11 +47,15 @@
   DevicePathLib
   PciLib
   QemuBootOrderLib
+  QemuFwCfgSimpleParserLib
   NvVarsFileLib
   ReportStatusCodeLib
   UefiLib
   PlatformBmPrintScLib
   Tcg2PhysicalPresenceLib
+
+[FixedPcd]
+  gUefiOvmfPkgTokenSpaceGuid.PcdUninstallMemAttrProtocol
 
 [Pcd]
   gUefiOvmfPkgTokenSpaceGuid.PcdEmuVariableEvent
@@ -69,6 +73,7 @@
   gEfiDxeSmmReadyToLockProtocolGuid             # PROTOCOL SOMETIMES_PRODUCED
   gEfiLoadedImageProtocolGuid                   # PROTOCOL SOMETIMES_PRODUCED
   gEfiFirmwareVolume2ProtocolGuid               # PROTOCOL SOMETIMES_CONSUMED
+  gEfiMemoryAttributeProtocolGuid               # PROTOCOL SOMETIMES_CONSUMED
 
 [Guids]
   gEfiEndOfDxeEventGroupGuid

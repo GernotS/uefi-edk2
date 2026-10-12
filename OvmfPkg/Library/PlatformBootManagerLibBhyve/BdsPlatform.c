@@ -1504,6 +1504,49 @@ SaveS3BootScript (
 }
 
 /**
+  Uninstall the EFI memory attribute protocol if it exists.
+**/
+STATIC
+VOID
+UninstallEfiMemoryAttributesProtocol (
+  VOID
+  )
+{
+  EFI_STATUS  Status;
+  EFI_HANDLE  Handle;
+  UINTN       Size;
+  VOID        *MemoryAttributeProtocol;
+
+  Size   = sizeof (Handle);
+  Status = gBS->LocateHandle (
+                  ByProtocol,
+                  &gEfiMemoryAttributeProtocolGuid,
+                  NULL,
+                  &Size,
+                  &Handle
+                  );
+
+  if (EFI_ERROR (Status)) {
+    ASSERT (Status == EFI_NOT_FOUND);
+    return;
+  }
+
+  Status = gBS->HandleProtocol (
+                  Handle,
+                  &gEfiMemoryAttributeProtocolGuid,
+                  &MemoryAttributeProtocol
+                  );
+  ASSERT_EFI_ERROR (Status);
+
+  Status = gBS->UninstallProtocolInterface (
+                  Handle,
+                  &gEfiMemoryAttributeProtocolGuid,
+                  MemoryAttributeProtocol
+                  );
+  ASSERT_EFI_ERROR (Status);
+}
+
+/**
   Do the platform specific action after the console is ready
 
   Possible things that can be done in PlatformBootManagerAfterConsole:
@@ -1523,6 +1566,7 @@ PlatformBootManagerAfterConsole (
   )
 {
   EFI_BOOT_MODE  BootMode;
+  BOOLEAN        Uninstall;
 
   DEBUG ((DEBUG_INFO, "PlatformBootManagerAfterConsole\n"));
 
@@ -1562,6 +1606,26 @@ PlatformBootManagerAfterConsole (
   // Logo show
   //
   BootLogoEnableLogo ();
+
+  //
+  // Work around boot loaders that make broken use of the EFI memory
+  // attributes protocol, such as shim 15.6 and the GRUB shipped with
+  // Solaris 11.4, by uninstalling it if requested via fw_cfg.
+  //
+  // E.g.,
+  //   -o lpc.fwcfg=qemu -f opt/org.tianocore/UninstallMemAttrProtocol,string=y
+  //
+  Uninstall = FixedPcdGetBool (PcdUninstallMemAttrProtocol);
+  QemuFwCfgParseBool ("opt/org.tianocore/UninstallMemAttrProtocol", &Uninstall);
+  DEBUG ((
+    DEBUG_WARN,
+    "%a: %auninstalling EFI memory protocol\n",
+    __func__,
+    Uninstall ? "" : "not "
+    ));
+  if (Uninstall) {
+    UninstallEfiMemoryAttributesProtocol ();
+  }
 
   //
   // Set PCI Interrupt Line registers and ACPI SCI_EN
